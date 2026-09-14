@@ -1,10 +1,38 @@
 import streamlit as st
 import redis
-import json
-from datetime import datetime
+import requests
 
-# Configure the page layout
-st.set_page_config(page_title="SurgentAI Prototype", layout="wide", page_icon="🏥")
+# 1. Page Configuration (Must be first)
+st.set_page_config(page_title="SurgentAI Prototype", layout="wide")
+
+# 2. Inject Custom CSS to mimic the prototype video's dark neon look
+st.markdown("""
+    <style>
+    /* Dark background and neon green text for that medical/hacker vibe */
+    .stApp {
+        background-color: #070d19;
+        color: #4af626;
+        font-family: 'Courier New', Courier, monospace;
+    }
+    h1, h2, h3, h4, p, span, div {
+        font-family: 'Courier New', Courier, monospace !important;
+    }
+    /* Style the text areas and buttons */
+    .stTextArea textarea {
+        background-color: #0b1426 !important;
+        color: #4af626 !important;
+        border: 1px solid #1f4068 !important;
+    }
+    .stButton>button {
+        background-color: #0a4d68;
+        color: white;
+        border: 1px solid #4af626;
+        width: 100%;
+    }
+    /* Hide default Streamlit header */
+    header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
 
 # Connect to Redis
 @st.cache_resource
@@ -13,48 +41,64 @@ def get_redis_client():
 
 r = get_redis_client()
 
-# Header
-st.title("SurgentAI Prototype")
+# --- TOP NAVIGATION BAR ---
+st.markdown("### 🧬 SURGENTAI `OR-3` | `LIVE MEDICAL CENTER` | `EDGE-NODE ACTIVE` | `AIR-GAPPED`")
 st.markdown("---")
 
-# Layout: Two columns
-col1, col2 = st.columns([2, 1])
+# --- MAIN DASHBOARD GRID ---
+col1, col2, col3 = st.columns([1, 1.2, 1])
 
+# Left Column: Vision
 with col1:
-    st.subheader("Agent 4 - Post-Op EMR Summarizer")
-    
-    # Text area to act as the report output
-    report_area = st.empty()
-    report_area.text_area("Final Report", value="Waiting to generate report...", height=300, disabled=True)
+    st.markdown("#### AGENT 1 • VISION SENTINEL")
+    st.info("📷 Live Video Feed: OFFLINE (Awaiting Agent 1)")
+    st.markdown("**PROCEDURE CHECKLIST**")
+    st.markdown("- [x] Trocar Insertion\n- [x] Pneumoperitoneum\n- [ ] Liver Retraction\n- [ ] Calot's Triangle Dissection")
 
-    # The Generate Button
-    if st.button("Generate Report", type="primary"):
-        # Fetch the simulated transcript (for now, just reading the raw stream)
-        # In the future, this is where you'll call Ollama
-        report_area.text_area("Final Report", value="Report generation in progress...\n(Ollama integration coming next!)", height=300)
-
+# Middle Column: Vitals (Fake data to simulate the charts in your video)
 with col2:
-    st.subheader("Cross-Agent Overview")
-    
-    # Simulated Alert Log
-    st.markdown("**Alert Log**")
-    
-    # We use a placeholder to update the log
-    log_placeholder = st.empty()
-    
-    # Fetch recent messages from a Redis list (we'll modify the mock script to use a list)
-    # For now, let's display a static placeholder to see the UI layout
-    log_placeholder.markdown("""
-    * **INFO:** Intervention successful.
-    * **CRITICAL:** Active dissection near Anaesthesiologist.
-    * **WARNING:** SpO2 falling.
-    """)
+    st.markdown("#### AGENT 2 • VITALS PREDICTIVE ENGINE")
+    st.line_chart({"BP_Sys": [120, 118, 119, 121, 115, 110, 105], "BP_Dia": [80, 79, 78, 80, 75, 72, 70]}, height=150)
+    st.line_chart({"SpO2": [99, 99, 98, 98, 97, 95, 92]}, height=150)
 
-# System Status Footer
-st.sidebar.title("System Status")
-st.sidebar.markdown("""
-- **Vitals Engine:** ✅ Active
-- **Vision Engine:** ✅ Active
-- **EMR Summarizer:** ⏳ Waiting
-- **Network:** Secure
-""")
+# Right Column: Alerts & Status
+with col3:
+    st.markdown("#### ALERT LOG")
+    st.error("🔴 CRITICAL: Vitals drop - Active dissection correlated.")
+    st.warning("🟠 WARNING: SpO2 falling.")
+    st.success("🟢 INFO: Intervention successful.")
+    
+    st.markdown("---")
+    st.markdown("#### SYSTEM STATUS")
+    st.markdown("* **Vision Engine:** ⏳ Pending\n* **Vitals Engine:** ⏳ Pending\n* **EMR Summarizer:** 🟢 ONLINE (TinyLlama)\n* **Network:** 🟢 AIR-GAPPED")
+
+st.markdown("---")
+
+# --- BOTTOM SECTION: AGENT 4 ---
+col_report, col_btn = st.columns([4, 1])
+
+with col_report:
+    st.markdown("#### AGENT 4 • POST-OP EMR SUMMARIZER")
+    report_area = st.empty()
+    report_area.text_area("Final Clinical Report", value="Awaiting procedure completion...", height=200, disabled=True)
+
+with col_btn:
+    st.markdown("<br><br>", unsafe_allow_html=True) # Spacer
+    if st.button("📄 Generate Report"):
+        with st.spinner("Analyzing..."):
+            transcript = "Incision made. Heart rate stable. Scalpel near critical vessel. Gallbladder extracted."
+            prompt = f"Write a 3 sentence medical summary of these events: {transcript}"
+            
+            try:
+                # Using TinyLlama as requested
+                response = requests.post('http://localhost:11434/api/generate', json={
+                    "model": "tinyllama:latest",
+                    "prompt": prompt,
+                    "stream": False
+                })
+                if response.status_code == 200:
+                    report_area.text_area("Final Clinical Report", value=response.json()['response'], height=200)
+                else:
+                    st.error("Model error.")
+            except Exception as e:
+                st.error("Ollama is not running. Start it in terminal!")
